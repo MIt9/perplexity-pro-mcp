@@ -1,0 +1,8 @@
+node_modules/
+dist/
+*.har
+.env
+.idea/
+debug-*.png
+*.tgz
+CLAUDE.md

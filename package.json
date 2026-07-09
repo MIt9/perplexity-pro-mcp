@@ -1,0 +1,45 @@
+{
+  "name": "perplexity-pro-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for Perplexity AI Pro — deep web search, follow-ups, threads and export via your browser session cookie",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "perplexity-pro-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "perplexity",
+    "search",
+    "ai",
+    "claude"
+  ],
+  "author": "d.bilukcha",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MIt9/perplexity-pro-mcp.git"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3",
+    "@types/node": "^22.15.21"
+  }
+}
