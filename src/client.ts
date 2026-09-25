@@ -123,25 +123,36 @@ export class PerplexityClient {
 
     if (!finalData) throw new Error("No final SSE message found in response");
 
-    // Parse text field (JSON array of steps)
     let answer = "";
     const sources: WebResult[] = [];
 
-    try {
-      const steps = JSON.parse(finalData.text);
-      for (const step of steps) {
-        if (step.step_type === "FINAL") {
-          answer = step.content?.answer ?? "";
+    if (Array.isArray(finalData.blocks)) {
+      // Current API: answer and sources come as typed blocks.
+      for (const block of finalData.blocks) {
+        if (block.markdown_block?.answer) {
+          answer = block.markdown_block.answer;
         }
-        if (step.step_type === "SEARCH_RESULTS") {
-          for (const wr of step.content?.web_results ?? []) {
-            sources.push({ name: wr.name, url: wr.url, snippet: wr.snippet });
-          }
+        for (const wr of block.web_result_block?.web_results ?? []) {
+          sources.push({ name: wr.name, url: wr.url, snippet: wr.snippet });
         }
       }
-    } catch {
-      // Fallback: text might be plain string
-      answer = finalData.text ?? "";
+    } else if (typeof finalData.text === "string") {
+      // Legacy API: text is a JSON-encoded array of steps.
+      try {
+        const steps = JSON.parse(finalData.text);
+        for (const step of steps) {
+          if (step.step_type === "FINAL") {
+            answer = step.content?.answer ?? "";
+          }
+          if (step.step_type === "SEARCH_RESULTS") {
+            for (const wr of step.content?.web_results ?? []) {
+              sources.push({ name: wr.name, url: wr.url, snippet: wr.snippet });
+            }
+          }
+        }
+      } catch {
+        answer = finalData.text;
+      }
     }
 
     const related = (finalData.related_query_items ?? []).map(
