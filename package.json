@@ -1,6 +1,6 @@
 {
   "name": "perplexity-pro-mcp",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "MCP server for Perplexity AI Pro — deep web search, follow-ups, threads and export via your browser session cookie",
   "type": "module",
   "main": "dist/index.js",
