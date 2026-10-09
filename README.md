@@ -1,5 +1,7 @@
 # perplexity-pro-mcp
 
+[![perplexity-pro-mcp MCP server – quality and maintenance score on Glama](https://glama.ai/mcp/servers/MIt9/perplexity-pro-mcp/badges/card.svg)](https://glama.ai/mcp/servers/MIt9/perplexity-pro-mcp)
+
 > **Search the web from Claude or Cursor** — MCP server for Perplexity AI Pro. Deep search, follow-up questions and conversation export. Uses your existing Pro session — no extra API key needed.
 
 MCP server for Perplexity AI Pro — deep web search, thread management, and export. Uses your browser session cookie, so it works with your existing **Perplexity Pro** subscription (no API key needed).
