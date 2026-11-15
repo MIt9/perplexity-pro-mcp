@@ -168,15 +168,94 @@ export class PerplexityClient {
     };
   }
 
-  async listThreads(limit = 20): Promise<Thread[]> {
-    const res = await fetch(
-      `${BASE_URL}/rest/thread/list_recent?limit=${limit}&exclude_asi=false&version=2.18&source=default`,
-      { headers: this.headers() }
-    );
-    if (!res.ok) throw new Error(`Failed to list threads: ${res.status} ${res.statusText}`);
-    const data = await res.json();
-    if (!Array.isArray(data)) return [];
-    return data;
+  private getAccountId(): string | undefined {
+    const m = this.cookie.match(/__Host-pplx-last-active-account=([^;]+)/);
+    return m ? decodeURIComponent(m[1]) : undefined;
+  }
+
+  async listThreads(limit = 20, searchTerm?: string): Promise<Thread[]> {
+    const term = searchTerm && searchTerm.trim() ? searchTerm.trim() : null;
+    const variables: Record<string, any> = {
+      includePins: term === null,
+      includeFirstMessagePreview: true,
+      includeSearchPreview: term !== null,
+      searchTerm: term,
+      sortOrder: "NEWEST",
+      statuses: null,
+      threadTypes: null,
+      sources: null,
+      excludedSources: ["MCP"],
+      includeTemporary: null,
+      viewerState: null,
+      itemTypes: ["THREAD", "AUTOMATION"],
+    };
+
+    const headers: Record<string, string> = {
+      ...this.headers({ "content-type": "application/json" }),
+    };
+    const accountId = this.getAccountId();
+    if (accountId) headers["x-pplx-account"] = accountId;
+
+    const res = await fetch(`${BASE_URL}/rest/perplexity_ask/graphql`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        operationName: "LibraryItemsRelayQuery",
+        variables,
+        extensions: {
+          persistedQuery: {
+            version: 1,
+            sha256Hash: "e2bf595eeae8f8959404884314c6b5fb2209014c4992d6a228cdfbc64cac24a0",
+          },
+        },
+      }),
+    });
+
+    // Fallback to the legacy REST endpoint when GraphQL is unavailable (and no search term).
+    if (!res.ok) {
+      if (term) throw new Error(`Failed to search threads: ${res.status} ${res.statusText}`);
+      const r2 = await fetch(
+        `${BASE_URL}/rest/thread/list_recent?limit=${limit}&exclude_asi=false&version=2.18&source=default`,
+        { headers: this.headers() }
+      );
+      if (!r2.ok) throw new Error(`Failed to list threads: ${r2.status} ${r2.statusText}`);
+      const data = await r2.json();
+      if (!Array.isArray(data)) return [];
+      return (data as any[]).slice(0, limit);
+    }
+
+    const data: any = await res.json();
+    if (data?.errors) {
+      throw new Error(`GraphQL error: ${JSON.stringify(data.errors)}`);
+    }
+
+    const edges: any[] = [];
+    const groups = [
+      data?.data?.viewer?.pinnedGroup?.items?.edges,
+      data?.data?.viewer?.recentGroup?.items?.edges,
+    ];
+    for (const g of groups) {
+      if (Array.isArray(g)) edges.push(...g);
+    }
+
+    const seen = new Set<string>();
+    const threads: Thread[] = [];
+    for (const edge of edges) {
+      const node = edge?.node;
+      const obj = node?.object ?? {};
+      const uuid = obj.slug ?? obj.entryId ?? obj.contextUUID ?? node?.id;
+      if (!uuid || seen.has(uuid)) continue;
+      seen.add(uuid);
+      threads.push({
+        uuid,
+        title: node?.title ?? obj.name ?? obj.firstMessagePreview ?? "Untitled",
+        status: String(obj.status ?? node?.status ?? "").toLowerCase(),
+        mode_type: String(obj.mode ?? ""),
+        answer_preview: obj.answerPreview ?? node?.searchPreview ?? undefined,
+      });
+    }
+
+    return threads.slice(0, limit);
   }
 
   async exportEntry(entryUuid: string, format: "md" | "pdf" = "md"): Promise<ExportResult> {

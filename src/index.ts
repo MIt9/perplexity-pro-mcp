@@ -48,12 +48,13 @@ server.tool(
 
 server.tool(
   "perplexity_threads",
-  "List recent Perplexity search threads.",
+  "List recent Perplexity search threads. Optionally filter by a search term (matches titles and conversation content).",
   {
     limit: z.number().default(10).describe("Number of threads to return"),
+    search: z.string().optional().describe("Optional search term to filter threads by title/content"),
   },
-  async ({ limit }) => {
-    const threads = await client.listThreads(limit);
+  async ({ limit, search }) => {
+    const threads = await client.listThreads(limit, search);
     const text = threads
       .map((t) => `- [${t.status}] ${t.title} (uuid: ${t.uuid})`)
       .join("\n");
